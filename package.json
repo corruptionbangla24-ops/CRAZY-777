@@ -1,0 +1,21 @@
+{
+  "name": "royal-crazy777-slots-engine",
+  "version": "1.9.5",
+  "description": "Traditional Asian Crazy 777 3-Reel Slots Module Locked on Port 6700",
+  "main": "server.js",
+  "scripts": {
+    "start": "PORT=6700 node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "express": "^4.21.2",
+    "path": "^0.12.7",
+    "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Royal Casino Developer King",
+  "license": "MIT"
+}
