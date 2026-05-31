@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CRAZY 777 - ROYAL TRIPLE SEVEN SLOTS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 🎰 HEADER PANEL -->
+    <div class="header">
+        <div class="brand">
+            <div class="name">CRAZY 777</div>
+            <div class="game">ROYAL TRIPLE 777 SPIN</div>
+        </div>
+        <div class="header-right">
+            <button class="sound-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
+            <div class="balance-box">৳ <span id="user-balance">0.00</span></div>
+        </div>
+    </div>
+
+    <!-- 🎰 CLASSIC 3-REEL MATRIX DISPLAY -->
+    <div class="crazy777-slot-zone">
+        <div class="slot-window-frame">
+            <!-- Central Win Payline Indicator -->
+            <div class="laser-payline"></div>
+            
+            <div class="reels-wrapper">
+                <!-- Reel 1 -->
+                <div class="reel-box">
+                    <div class="reel-strip" id="strip-0">
+                        <div class="crazy-tile">⑦</div>
+                    </div>
+                </div>
+                <!-- Reel 2 -->
+                <div class="reel-box">
+                    <div class="reel-strip" id="strip-1">
+                        <div class="crazy-tile">⑦</div>
+                    </div>
+                </div>
+                <!-- Reel 3 -->
+                <div class="reel-box">
+                    <div class="reel-strip" id="strip-2">
+                        <div class="crazy-tile">⑦</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏆 SCOREBOARD STATUS NOTIFICATION BAR -->
+    <div class="win-status-container" id="win-status-box">
+        <span id="win-text-msg">Select your bet and press SPIN! Match Triple 7 for Mega Jackpot!</span>
+    </div>
+
+    <!-- 🎛️ CONTROLS ENGINE (Bet Configuration & Spin Mechanics) -->
+    <div class="footer-controls">
+        <div class="play-section">
+            <div class="bet-selector">
+                <button class="bet-btn-nav" onclick="adjustBet('minus')">−</button>
+                <div style="text-align: center; width: 60px;">
+                    <div style="font-size: 9px; color: #aaa; font-weight: bold;">BET</div>
+                    <div style="font-size: 15px; font-weight: 900; color: #fff;" id="bet-display">৳৫০</div>
+                </div>
+                <button class="bet-btn-nav" onclick="adjustBet('plus')">+</button>
+            </div>
+
+            <button class="play-btn" id="spin-btn" onclick="handleCrazy777SpinAction()">SPIN</button>
+
+            <div class="icon-group">
+                <button class="icon-btn" id="auto-btn" onclick="toggleAuto()">🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔌 CORE FRAMEWORK SOCKET LINKAGE & RUNTIME MOTOR -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('userId') || urlParams.get('id') || urlParams.get('username') || "guest_user";
+        const urlWallet = urlParams.get('wallet') || "main";
+        
+        const SERVER_URL = window.location.origin;
+
+        let balance = 0.00;
+        let currentBet = 50; 
+        let isSpinning = false; 
+        let isAuto = false;
+        let isMuted = false;
+        let autoInterval = null;
+
+        // Classic 3-Reel Fallback UI Symbol Set Mapping
+        const crazy777DisplayMap = {
+            "GOLDEN_7": "👑", 
+            "TRIPLE_7": "🔥", 
+            "DOUBLE_7": "🎰", 
+            "SINGLE_7": "⑦", 
+            "TRIPLE_BAR": "🪵", 
+            "DOUBLE_BAR": "🪵", 
+            "SINGLE_BAR": "🪵"
+        };
+
+        // 🧠 SYNCHRONOUS SEQUENTIAL SYMBOL ROLLING ENGINE
+        function animateCrazy777Reels(serverReelsData, finalStatus, winAmount) {
+            let completedReelsCount = 0;
+
+            for (let i = 0; i < 3; i++) {
+                const strip = document.getElementById(`strip-${i}`);
+                const finalSymbol = serverReelsData[i];
+                
+                // Inject Motion Blur Vector CSS Class
+                strip.className = "reel-strip reel-blur-spinning-fast";
+                
+                let rollCounter = 0;
+                const rollTimerInterval = setInterval(() => {
+                    const tempPool = Object.keys(crazy777DisplayMap);
+                    const randomSymbol = tempPool[Math.floor(Math.random() * tempPool.length)];
+                    
+                    strip.innerHTML = `<div class="crazy-tile">${crazy777DisplayMap[randomSymbol]}</div>`;
+                    rollCounter++;
+
+                    // Custom Progression Brake Matrix Delays (i * 5)
+                    if (rollCounter >= (12 + i * 5)) {
+                        clearInterval(rollTimerInterval);
+                        strip.className = "reel-strip final-symbol-pop-node";
+                        
+                        // Custom Asset Path with Automatic Character Fallback on Failure
+                        const imgPath = `./images/${finalSymbol.toLowerCase()}.png`;
+                        strip.innerHTML = `<img src="${imgPath}" class="tile-img-asset" onerror="this.onerror=null; this.parentNode.innerHTML='<div class=\"crazy-tile\">${crazy777DisplayMap[finalSymbol] || "⑦"}</div>';">`;
+                        
+                        completedReelsCount++;
+                        playAudio('click');
+
+                        if (completedReelsCount === 3) {
+                            showFinalGameReward(finalStatus, winAmount);
+                        }
+                    }
+                }, 65);
+            }
+        }
+
+        // 🛫 SECURE ASYNCHRONOUS TRANSACTION GATEWAY TANK
+        async function handleCrazy777SpinAction() {
+            if (isSpinning) return;
+
+            isSpinning = true;
+            document.getElementById("spin-btn").disabled = true;
+            document.getElementById("win-status-box").className = "win-status-container";
+            document.getElementById("win-text-msg").innerText = "🎰 Spinning the Crazy 777 reels...";
+
+            playAudio('spin');
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/crazy777-spin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: urlUserId,
+                        amount: parseFloat(currentBet),
+                        wallet: urlWallet
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data && data.success === true) {
+                    balance = parseFloat(data.balance);
+                    if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+                    if (window.top) window.top.postMessage({ action: "refresh_wallet" }, "*");
+
+                    animateCrazy777Reels(data.reels, data.status, data.winAmount);
+                } else {
+                    alert(data.message || "❌ Insufficient Balance! Please Recharge BDT.");
+                    stopSpinState();
+                }
+            } catch (err) {
+                alert("⚠️ Connection Timeout! Please tap SPIN again.");
+                stopSpinState();
+            }
+        }
+
+        // 🏆 STATE CONTEXT AND SCOREBOARD MANAGER
+        function showFinalGameReward(status, winAmount) {
+            const msgBox = document.getElementById("win-status-box");
+            const textMsg = document.getElementById("win-text-msg");
+
+            if (status === "win") {
+                playAudio('win');
+                msgBox.className = "win-status-container win-glow-bar";
+                textMsg.innerText = `🏆 TRIPLE JACKPOT WIN!! Payout: ৳${winAmount}`;
+            } else {
+                playAudio('wheel'); 
+                msgBox.className = "win-status-container lose-glow-bar";
+                textMsg.innerText = `❌ No match this round! Spin again to win big.`;
+            }
+
+            document.getElementById("user-balance").innerText = balance.toFixed(2);
+            stopSpinState();
+
+            if (isAuto) {
+                autoInterval = setTimeout(() => {
+                    if (isAuto) handleCrazy777SpinAction();
+                }, 2600); 
+            }
+        }
+
+        // 🔌 RE-ENTRY REALTIME Sockets INTERCEPTOR ENGINE
+        if (typeof io !== 'undefined') {
+            const socket = io();
+            socket.on("balanceUpdate", (data) => {
+                if (data && data.username === urlUserId) {
+                    if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+                    fetchLiveBalance();
+                }
+            });
+        }
+
+        async function fetchLiveBalance() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/crazy777-balance?userId=${urlUserId}&wallet=${urlWallet}`);
+                const data = await response.json();
+                if (data && data.success) {
+                    balance = parseFloat(data.balance);
+                    document.getElementById("user-balance").innerText = balance.toFixed(2);
+                }
+            } catch (e) { console.error("Balance synchronization route bypassed"); }
+        }
+
+        window.onload = () => {
+            if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+            fetchLiveBalance();
+        };
+
+                // 🎛️ CONTROL PARAMETER NAVIGATOR MECHANICS
+        function adjustBet(action) {
+            if (isSpinning) return;
+            if (action === 'minus' && currentBet > 1) {
+                if (currentBet <= 10) currentBet -= 1;
+                else if (currentBet <= 100) currentBet -= 10;
+                else if (currentBet <= 1000) currentBet -= 100;
+                else currentBet -= 500;
+            }
+            if (action === 'plus' && currentBet < 20000) {
+                if (currentBet < 10) currentBet += 1;
+                else if (currentBet < 100) currentBet += 10;
+                else if (currentBet < 1000) currentBet += 100;
+                else currentBet -= -500; // Force numeric addition bypass
+            }
+            if (currentBet < 1) currentBet = 1;
+            if (currentBet > 20000) currentBet = 20000;
+            
+            document.getElementById("bet-display").innerText = `৳${currentBet}`;
+            playAudio('click');
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById("mute-btn").innerText = isMuted ? "🔇" : "🔊";
+            document.getElementById("mute-btn").classList.toggle("muted-active", isMuted);
+            slotSounds.click.muted = isMuted;
+            slotSounds.spin.muted = isMuted;
+            slotSounds.win.muted = isMuted;
+            slotSounds.wheel.muted = isMuted;
+        }
+
+        function toggleAuto() {
+            isAuto = !isAuto;
+            document.getElementById("auto-btn").classList.toggle("active", isAuto);
+            if (isAuto && !isSpinning) handleCrazy777SpinAction();
+            playAudio('click');
+        }
+
+        function stopSpinState() {
+            isSpinning = false;
+            document.getElementById("spin-btn").disabled = false;
+            if (!isAuto && autoInterval) clearTimeout(autoInterval);
+        }
+
+        // 🎯 [৪টি ওরিজিনাল প্রফেশনাল স্লট সাউন্ড ও বাফার গেটওয়ে লক ভাই ভাই]
+        const slotSounds = {
+            click: new Audio('click2.mp3'),
+            spin: new Audio('spin2.mp3'),
+            win: new Audio('win2.mp3'),
+            wheel: new Audio('wheel1.mp3')
+        };
+        Object.values(slotSounds).forEach(s => s.load());
+
+        function playAudio(type) { 
+            if (isMuted) return; 
+            try { 
+                slotSounds[type].currentTime = 0; 
+                slotSounds[type].play(); 
+            } catch(e){} 
+        }
+    </script>
+</body>
+</html>
